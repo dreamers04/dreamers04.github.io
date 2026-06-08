@@ -912,6 +912,60 @@ iframe {
   transform: translate(-50%, 0);
 }
 
+.blank-editor {
+  min-height: calc(100vh - 140px);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: clamp(24px, 5vw, 64px);
+  background: var(--surface-strong);
+  box-shadow: var(--shadow);
+}
+
+.blank-editor-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: clamp(28px, 5vw, 58px);
+}
+
+.blank-editor h2 {
+  min-height: 1.2em;
+  margin: 0 0 24px;
+  outline: 0;
+  font-size: clamp(38px, 7vw, 76px);
+  line-height: 1.05;
+}
+
+.blank-body {
+  min-height: 48vh;
+  outline: 0;
+  color: var(--text);
+  font-size: 18px;
+  line-height: 1.9;
+  white-space: pre-wrap;
+}
+
+[contenteditable="true"]:empty::before {
+  content: attr(data-placeholder);
+  color: var(--muted);
+}
+
+.builder-block {
+  position: relative;
+  left: auto;
+  right: auto;
+  bottom: auto;
+  width: min(460px, 100%);
+  margin-top: 12px;
+}
+
+.builder-block p {
+  margin-bottom: 0;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
 .settings-list {
   display: grid;
   gap: 16px;
