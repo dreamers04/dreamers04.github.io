@@ -5,6 +5,7 @@ const storeKey = "archive-yuwol-workspace-v2";
 const defaultState = {
   activeView: "dashboard",
   activeLoreCategory: "지역",
+  selectedLoreId: "lore-lumen", // 선택된 세계관 문서 ID 추적용
   activeNoteCategory: "아이디어 노트",
   activeGalleryCategory: "이미지 레퍼런스",
   loreCategories: ["지역", "종족", "조직", "사건", "연표"],
@@ -12,7 +13,15 @@ const defaultState = {
   galleryCategories: ["이미지 레퍼런스", "무드보드"],
   visibility: "비공개",
   characters: [],
-  lore: [],
+  lore: [
+    {
+      id: "lore-lumen",
+      title: "루멘 항구",
+      category: "지역",
+      body: `달이 바다에 낮게 걸리는 밤이면, 항구의 등대는 빛 대신 오래된 이름들을 비춘다.<br><br><blockquote style="margin:16px 0; border-left:3px solid var(--accent); padding-left:16px; color:var(--text); font-style:italic;">“이 도시에서는 아무도 완전히 사라지지 않는다. 기록되지 않을 뿐이다.”</blockquote>`,
+      updatedAt: new Date().toISOString(),
+    },
+  ],
   notes: [],
   gallery: [],
   builderBlocks: [
@@ -57,8 +66,8 @@ function persist(message = "자동 저장됨") {
   try {
     localStorage.setItem(storeKey, JSON.stringify(state));
   } catch (e) {
-    console.error("저장 공간이 꽉 찼거나 오류가 발생했습니다.", e);
-    showToast("저장 용량 초과! 이미지를 줄여주세요.");
+    console.error("Storage space full or error context:", e);
+    showToast("저장 용량 초과 경고! 이미지를 줄여주세요.");
     return;
   }
   saveState.textContent = message;
@@ -165,11 +174,79 @@ function renderLore() {
   $("#loreTitle").textContent = `세계관 · ${state.activeLoreCategory}`;
   renderPills($("#loreCategoryPills"), state.loreCategories, state.activeLoreCategory, (category) => {
     state.activeLoreCategory = category;
+    const catItems = state.lore.filter((item) => item.category === state.activeLoreCategory);
+    state.selectedLoreId = catItems.length > 0 ? catItems[0].id : null;
     renderAll();
   });
+
+  const catItems = state.lore.filter((item) => item.category === state.activeLoreCategory);
+  
+  // 선택 ID 보정 로직
+  if (state.selectedLoreId && !catItems.some(i => i.id === state.selectedLoreId)) {
+    state.selectedLoreId = catItems.length > 0 ? catItems[0].id : null;
+  } else if (!state.selectedLoreId && catItems.length > 0) {
+    state.selectedLoreId = catItems[0].id;
+  }
+
+  // 1. 메인 에디터 영역 동적 가공
+  const docContainer = $(".document");
+  const activeItem = state.lore.find((item) => item.id === state.selectedLoreId);
+
+  if (activeItem) {
+    docContainer.dataset.id = activeItem.id;
+    docContainer.dataset.collection = "lore";
+    docContainer.innerHTML = `
+      <p class="doc-category">세계관 / ${state.activeLoreCategory}</p>
+      <h3 contenteditable="true" data-field="title">${escapeHTML(activeItem.title)}</h3>
+      <div contenteditable="true" data-field="body" class="doc-editable-body" style="outline:none; min-height:200px; line-height:1.85;">${activeItem.body}</div>
+    `;
+  } else {
+    docContainer.removeAttribute("data-id");
+    docContainer.removeAttribute("data-collection");
+    docContainer.innerHTML = `
+      <p class="doc-category">세계관 / ${state.activeLoreCategory}</p>
+      <h3>작성된 문서가 없습니다</h3>
+      <p style="color: var(--muted);">오른쪽 아래의 하단 [+] 버튼 또는 위의 추가 버튼을 통해 첫 페이지를 생성하세요!</p>
+    `;
+  }
+
+  // 2. 하단 리스트 영역 가공 (클릭 시 해당 글만 로드)
   const list = $("#loreList");
   list.innerHTML = "";
-  state.lore.filter((item) => item.category === state.activeLoreCategory).forEach((item) => list.append(renderContentCard("lore", item)));
+  catItems.forEach((item) => {
+    const card = document.createElement("article");
+    card.className = `content-card ${item.id === state.selectedLoreId ? 'editable-note' : ''}`;
+    card.style.cursor = "pointer";
+    card.innerHTML = `
+      <small style="color:var(--accent); font-weight:bold;">● ${escapeHTML(item.category)}</small>
+      <h3 style="margin:6px 0 4px; font-size:18px;">${escapeHTML(item.title)}</h3>
+      <p style="font-size:13px; margin:0; overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;">
+        ${escapeHTML(item.body.replace(/<[^>]*>/g, ''))}
+      </p>
+    `;
+    
+    card.addEventListener("click", (e) => {
+      if (e.target.tagName === "BUTTON") return;
+      state.selectedLoreId = item.id;
+      renderAll();
+      window.scrollTo({ top: docContainer.offsetTop - 100, behavior: 'smooth' });
+    });
+    
+    const actions = document.createElement("div");
+    actions.className = "card-actions";
+    const remove = document.createElement("button");
+    remove.textContent = "삭제";
+    remove.onclick = (event) => {
+      event.stopPropagation();
+      state.lore = state.lore.filter(e => e.id !== item.id);
+      if (state.selectedLoreId === item.id) state.selectedLoreId = null;
+      renderAll();
+      persist("문서 삭제됨");
+    };
+    actions.append(remove);
+    card.append(actions);
+    list.append(card);
+  });
 }
 
 function renderNotes() {
@@ -211,7 +288,6 @@ function renderBuilder() {
     el.dataset.id = block.id;
     el.innerHTML = `<strong contenteditable="true" data-field="title">${escapeHTML(block.title)}</strong><p contenteditable="true" data-field="body">${escapeHTML(block.body)}</p>`;
     
-    // Page Builder Drag & Drop Logic
     el.addEventListener("dragstart", (e) => {
       e.dataTransfer.setData("text/plain", block.id);
       setTimeout(() => el.style.opacity = "0.4", 0);
@@ -269,6 +345,31 @@ function renderNoteCard(note) {
   return card;
 }
 
+// Rich Editor Text Insertion Core
+function insertHTMLAtCursor(html) {
+  const sel = window.getSelection();
+  if (sel.getRangeAt && sel.rangeCount) {
+    const range = sel.getRangeAt(0);
+    range.deleteContents();
+    
+    const el = document.createElement("div");
+    el.innerHTML = html;
+    const frag = document.createDocumentFragment();
+    let node, lastNode;
+    while ((node = el.firstChild)) {
+      lastNode = frag.appendChild(node);
+    }
+    range.insertNode(frag);
+    
+    if (lastNode) {
+      range.setStartAfter(lastNode);
+      range.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(range);
+    }
+  }
+}
+
 // Actions & Handlers
 function openBlankDocument() {
   showView("blankDocument");
@@ -311,7 +412,7 @@ function closeItemModal() {
 function createItem(mode, title, category, body) {
   const item = { id: uid(mode), title, category, body, updatedAt: new Date().toISOString() };
   if (mode === "characters") { item.image = "./assets/portrait-elia.png"; state.characters.unshift(item); }
-  else if (mode === "lore") { state.lore.unshift(item); state.activeLoreCategory = category; }
+  else if (mode === "lore") { state.lore.unshift(item); state.activeLoreCategory = category; state.selectedLoreId = item.id; }
   else if (mode === "notes") { state.notes.unshift(item); state.activeNoteCategory = category; }
   showView(mode);
   renderAll();
@@ -361,7 +462,7 @@ $("#openSidebar").addEventListener("click", () => sidebar.classList.add("open"))
 $("#closeSidebar").addEventListener("click", () => sidebar.classList.remove("open"));
 
 // Buttons & Actions
-$("#newDocument").addEventListener("click", openBlankDocument); // 항상 빈 문서 열기
+$("#newDocument").addEventListener("click", openBlankDocument);
 $(".fab").addEventListener("click", performFabAction);
 $("#saveBlankDocument").addEventListener("click", () => saveBlankDocument("아이디어 노트"));
 $("#blankToScenario").addEventListener("click", () => saveBlankDocument("시나리오 초안"));
@@ -376,10 +477,10 @@ itemForm.addEventListener("submit", (e) => {
   closeItemModal();
 });
 
-// Categories & Actions mapping
+// Categories System Logic
 const catAction = (type, isAdd) => {
   if (isAdd) {
-    const n = prompt("새 카테고리 이름:");
+    const n = prompt("새 카테고리 이름을 지정하세요:");
     if (n && n.trim()) {
       state[`${type}Categories`].push(n.trim());
       state[`active${type.charAt(0).toUpperCase() + type.slice(1)}Category`] = n.trim();
@@ -388,10 +489,10 @@ const catAction = (type, isAdd) => {
   } else {
     const key = `active${type.charAt(0).toUpperCase() + type.slice(1)}Category`;
     const arrKey = `${type}Categories`;
-    if (["지역", "아이디어 노트", "이미지 레퍼런스"].includes(state[key])) return showToast("기본 카테고리는 삭제 불가");
+    if (["지역", "아이디어 노트", "이미지 레퍼런스"].includes(state[key])) return showToast("기본 지정 폴더는 제거가 불가합니다.");
     state[arrKey] = state[arrKey].filter(c => c !== state[key]);
     state[key] = state[arrKey][0];
-    renderAll(); persist("카테고리 삭제됨");
+    renderAll(); persist("카테고리 제거됨");
   }
 }
 
@@ -406,6 +507,47 @@ $("#addLore").onclick = () => openModal("lore", state.activeLoreCategory);
 $("#newNoteInline").onclick = () => openModal("notes", state.activeNoteCategory);
 $("#newScenarioDraft").onclick = () => openModal("notes", "시나리오 초안");
 $("#newPrivateMemo").onclick = () => openModal("notes", "비공개 메모");
+
+// Editor Rich Text Toolbar Listeners (mousedown을 사용해야 포커스를 잃지 않음)
+const toolbar = $(".editor-toolbar");
+if (toolbar) {
+  const btns = toolbar.querySelectorAll("button");
+  
+  const bindToolbar = (btn, action) => {
+    if(!btn) return;
+    btn.addEventListener("mousedown", (e) => {
+      e.preventDefault(); // 중요: 에디터창 포커스 아웃 방지
+      action();
+      const activeEdit = document.activeElement;
+      if (activeEdit && activeEdit.hasAttribute("contenteditable")) {
+        activeEdit.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+    });
+  };
+
+  bindToolbar(btns[0], () => document.execCommand("bold", false, null));
+  bindToolbar(btns[1], () => document.execCommand("italic", false, null));
+  bindToolbar(btns[2], () => insertHTMLAtCursor(`
+    <table style="width:100%; border-collapse:collapse; margin:16px 0; border:1px solid var(--line);">
+      <tr style="background:var(--soft);">
+        <th style="border:1px solid var(--line); padding:8px; text-align:left; font-size:14px;">속성</th>
+        <th style="border:1px solid var(--line); padding:8px; text-align:left; font-size:14px;">설명</th>
+      </tr>
+      <tr>
+        <td style="border:1px solid var(--line); padding:8px; font-size:14px; color:var(--muted);">속성값</td>
+        <td style="border:1px solid var(--line); padding:8px; font-size:14px;">내용을 작성하세요</td>
+      </tr>
+    </table><p><br></p>`));
+  bindToolbar(btns[3], () => insertHTMLAtCursor(`
+    <blockquote style="margin:16px 0; border-left:3px solid var(--accent); padding:6px 0 6px 16px; color:var(--text); font-style:italic; background:var(--soft);">
+      “이곳에 중요한 세계관 인용구를 입력하세요.”
+    </blockquote><p><br></p>`));
+  bindToolbar(btns[4], () => insertHTMLAtCursor(`
+    <details style="border:1px solid var(--line); border-radius:var(--radius); padding:12px; margin:16px 0; background:var(--surface-strong);">
+      <summary style="cursor:pointer; font-weight:bold; color:var(--text); outline:none;">🔍 설정 더보기 (클릭 시 열림)</summary>
+      <p style="margin-top:10px; margin-bottom:0; color:var(--muted); font-size:14px; line-height:1.6;">여기에 독자에게 숨겨둘 히든 복선이나 상세 세부 서사를 작성하세요.</p>
+    </details><p><br></p>`));
+}
 
 // Uploads
 $("#uploadCharacterImage").onclick = () => $("#characterImageInput").click();
@@ -424,7 +566,11 @@ $("#categoryTree").addEventListener("click", (e) => {
   const link = e.target.closest("a");
   if (!link) return;
   e.preventDefault();
-  if (link.dataset.type === "lore") state.activeLoreCategory = link.dataset.category;
+  if (link.dataset.type === "lore") {
+    state.activeLoreCategory = link.dataset.category;
+    const catItems = state.lore.filter((item) => item.category === state.activeLoreCategory);
+    state.selectedLoreId = catItems.length > 0 ? catItems[0].id : null;
+  }
   if (link.dataset.type === "note") state.activeNoteCategory = link.dataset.category;
   if (link.dataset.type === "gallery") state.activeGalleryCategory = link.dataset.category;
   showView(link.dataset.view);
@@ -438,8 +584,17 @@ document.addEventListener("input", (e) => {
   if (!edit) return;
   const card = edit.closest("[data-collection]");
   if (card) {
-    const item = state[card.dataset.collection].find(i => i.id === card.dataset.id);
-    if (item) { item[edit.dataset.field] = edit.textContent; persist("자동 저장됨"); }
+    const collection = card.dataset.collection;
+    const item = state[collection].find(i => i.id === card.dataset.id);
+    if (item) { 
+      // 세계관 본문(body)은 스타일 코드 유지를 위해 innerHTML로 크롤링 처리
+      if (collection === "lore" && edit.dataset.field === "body") {
+        item[edit.dataset.field] = edit.innerHTML;
+      } else {
+        item[edit.dataset.field] = edit.textContent;
+      }
+      persist("자동 저장됨"); 
+    }
   }
   const block = edit.closest(".builder-block");
   if (block) {
