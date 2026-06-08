@@ -622,6 +622,18 @@ iframe {
   background: #fff;
 }
 
+.note-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.note-actions .primary-button {
+  width: auto;
+  padding: 10px 14px;
+}
+
 .note-list {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -631,6 +643,273 @@ iframe {
 .note-list article,
 .settings-list {
   padding: 18px;
+}
+
+.note-card {
+  position: relative;
+}
+
+.editable-note {
+  outline: 2px solid rgba(143, 155, 179, 0.18);
+}
+
+.editable-note [contenteditable="true"] {
+  border-radius: var(--radius);
+  outline: 0;
+  transition:
+    background 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.editable-note [contenteditable="true"]:focus {
+  background: var(--soft);
+  box-shadow: 0 0 0 6px var(--soft);
+}
+
+.note-meta {
+  margin-top: 14px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.delete-note {
+  position: absolute;
+  right: 14px;
+  top: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 6px 9px;
+  background: var(--surface-strong);
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.delete-note:hover {
+  background: var(--soft);
+  color: var(--text);
+}
+
+.tree-head,
+.section-actions,
+.category-pills,
+.modal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.tree-head {
+  justify-content: space-between;
+}
+
+.tree-tool {
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-strong);
+  color: var(--muted);
+}
+
+.tree a.active-tree {
+  background: var(--soft);
+  color: var(--text);
+}
+
+.section-actions {
+  margin: 0 0 16px;
+}
+
+.section-actions .primary-button,
+.note-actions .primary-button,
+.modal-actions .primary-button {
+  width: auto;
+  padding: 10px 14px;
+}
+
+.category-pills {
+  margin: 0 0 16px;
+}
+
+.category-pills button {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 8px 11px;
+  background: var(--surface-strong);
+  color: var(--muted);
+}
+
+.category-pills button.active {
+  background: var(--text);
+  color: var(--bg);
+}
+
+.content-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.content-card {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 18px;
+  background: var(--surface-strong);
+  box-shadow: var(--shadow);
+}
+
+.content-card img {
+  aspect-ratio: 16 / 10;
+  border-radius: var(--radius);
+  margin-bottom: 14px;
+}
+
+.content-card h3 {
+  margin: 12px 0 8px;
+  font-size: 24px;
+}
+
+.content-card p {
+  color: var(--muted);
+  line-height: 1.75;
+}
+
+.content-card [contenteditable="true"],
+.note-card [contenteditable="true"] {
+  border-radius: var(--radius);
+  outline: 0;
+}
+
+.content-card [contenteditable="true"]:focus,
+.note-card [contenteditable="true"]:focus {
+  background: var(--soft);
+  box-shadow: 0 0 0 6px var(--soft);
+}
+
+.card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.card-actions button {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 7px 9px;
+  background: var(--surface-strong);
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.hidden-file {
+  position: fixed;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.gallery-item {
+  position: relative;
+  break-inside: avoid;
+  margin-bottom: 10px;
+}
+
+.gallery-item img {
+  margin-bottom: 0;
+}
+
+.gallery-item button {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  border-radius: var(--radius);
+  padding: 6px 8px;
+  background: rgba(255, 255, 255, 0.82);
+  color: #1d1d1f;
+}
+
+.modal {
+  width: min(620px, calc(100vw - 28px));
+  border: 0;
+  border-radius: var(--radius);
+  padding: 0;
+  background: transparent;
+  color: var(--text);
+}
+
+.modal::backdrop {
+  background: rgba(20, 20, 24, 0.34);
+  backdrop-filter: blur(8px);
+}
+
+.modal-panel {
+  display: grid;
+  gap: 15px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 22px;
+  background: var(--surface-strong);
+  box-shadow: var(--shadow);
+}
+
+.modal-panel h2 {
+  margin: 0;
+}
+
+.modal-panel label {
+  display: grid;
+  gap: 8px;
+  color: var(--muted);
+}
+
+.modal-panel input,
+.modal-panel select,
+.modal-panel textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 11px 12px;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.modal-panel textarea {
+  min-height: 160px;
+  border-right: 1px solid var(--line);
+}
+
+.modal-actions {
+  justify-content: flex-end;
+}
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 28px;
+  z-index: 30;
+  transform: translate(-50%, 12px);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 10px 14px;
+  background: var(--surface-strong);
+  color: var(--text);
+  box-shadow: var(--shadow);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease;
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translate(-50%, 0);
 }
 
 .settings-list {
@@ -761,6 +1040,7 @@ iframe {
   .profile-card,
   .builder,
   .embed-grid,
+  .content-grid,
   .note-list {
     grid-template-columns: 1fr;
   }
